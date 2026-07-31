@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // ¡IMPORTANTE! Reemplaza con la URL de la aplicación web que obtuviste de Google Apps Script
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxjzUwYqGsHM3jdGfH7yL8pkghb3nRNYVegNty9lo8NMG9z5ldDMTrjc5mZrShAx8eOGA/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwVSncjLI5d-aJM1HW3tAqdMbzYMd2L3XQw8WZKFY_PTPXgcl3TGqVvy3bTTFPkrM6mHQ/exec';
 
     const loginContainer = document.getElementById('login-container');
     const mainMenu = document.getElementById('main-menu');
