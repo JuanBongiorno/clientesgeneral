@@ -4,9 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Bidones y Servicio Técnico</title>
+    <meta name="theme-color" content="#0b6fa4">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="preload" as="image" href="./assets/img/3d-agua-ai-generar.jpg">
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="body">
+    <div class="ocean" aria-hidden="true">
+        <svg class="wave wave-back" viewBox="0 0 2880 220" preserveAspectRatio="none">
+            <defs>
+                <path id="ola-back" d="M0,120 C240,190 480,40 720,100 C960,160 1200,50 1440,120 L1440,220 L0,220 Z"></path>
+            </defs>
+            <use href="#ola-back"></use>
+            <use href="#ola-back" x="1440"></use>
+        </svg>
+        <svg class="wave wave-mid" viewBox="0 0 2880 220" preserveAspectRatio="none">
+            <defs>
+                <path id="ola-mid" d="M0,140 C200,60 460,190 720,130 C980,70 1240,210 1440,140 L1440,220 L0,220 Z"></path>
+            </defs>
+            <use href="#ola-mid"></use>
+            <use href="#ola-mid" x="1440"></use>
+        </svg>
+        <svg class="wave wave-front" viewBox="0 0 2880 220" preserveAspectRatio="none">
+            <defs>
+                <path id="ola-front" d="M0,160 C260,215 520,105 780,150 C1000,188 1240,120 1440,160 L1440,220 L0,220 Z"></path>
+            </defs>
+            <use href="#ola-front"></use>
+            <use href="#ola-front" x="1440"></use>
+        </svg>
+    </div>
+
+    <div id="status-bar" class="status-bar" role="status" aria-live="polite">
+        <span id="status-conexion" class="status-dot online">En línea</span>
+        <span id="status-pendientes" class="status-pendientes hidden">0 pendientes</span>
+    </div>
+
     <div class="container" id="login-container">
         <div class="fotoFormulario">
             <img src="./assets/img/Generated Image November 08, 2025 - 9_08PM.png" alt="" class="foto3">
@@ -74,7 +106,13 @@
             </div>
             <div class="input-group">
                 <label for="tecnico">Técnico:</label>
-                <input type="text" id="tecnico" name="tecnico" required>
+                <select id="tecnico" name="tecnico" required>
+                    <option value="" disabled selected>Seleccioná un técnico</option>
+                    <option value="GAMBOA">GAMBOA</option>
+                    <option value="HERLEIN">HERLEIN</option>
+                    <option value="SAGUE">SAGUE</option>
+                    <option value="SANDOVAL">SANDOVAL</option>
+                </select>
             </div>
             <div class="input-group">
                 <label for="observaciones-tecnico">Observaciones:</label>
@@ -86,6 +124,7 @@
         </form>
     </div>
 
+    <script src="queue.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

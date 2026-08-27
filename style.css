@@ -1,7 +1,6 @@
 /* General Body Styles */
 .body {
     font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient to bottom right, #6a11cb, #2575fc; /* Modern gradient background */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -10,10 +9,107 @@
     padding: 20px;
     box-sizing: border-box;
     color: #ffffff;
-    background-image: url(./assets/img/333.png);
-    background-repeat:no-repeat;
+    position: relative;
+    overflow-x: hidden;
+    background-color: #04263f;
+    background-image:
+        linear-gradient(180deg, rgba(2, 30, 54, 0.55) 0%, rgba(2, 44, 78, 0.35) 45%, rgba(3, 60, 99, 0.65) 100%),
+        url('./assets/img/3d-agua-ai-generar.jpg');
+    background-repeat: no-repeat;
     background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    image-rendering: -webkit-optimize-contrast;
+}
 
+/* Olas animadas sobre la foto de agua */
+.ocean {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 42vh;
+    min-height: 220px;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.ocean .wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+    display: block;
+    fill: currentColor;
+    will-change: transform;
+}
+
+.wave-back {
+    color: rgba(255, 255, 255, 0.12);
+    animation: oleaje 18s linear infinite;
+}
+
+.wave-mid {
+    color: rgba(83, 190, 236, 0.28);
+    animation: oleaje 12s linear infinite reverse;
+}
+
+.wave-front {
+    color: rgba(11, 111, 164, 0.45);
+    animation: oleaje 8s linear infinite;
+}
+
+@keyframes oleaje {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ocean .wave { animation: none; }
+}
+
+/* Barra de estado (conexión / cola de envíos) */
+.status-bar {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 5;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
+.status-bar span {
+    padding: 6px 12px;
+    border-radius: 999px;
+    backdrop-filter: blur(6px);
+    background-color: rgba(0, 0, 0, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.status-dot::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.status-dot.online::before { background-color: #4CAF50; }
+.status-dot.offline::before { background-color: #f44336; }
+
+.status-pendientes {
+    color: #ffd166;
+}
+
+.status-bar .hidden {
+    display: none;
 }
 
 .foto3{
@@ -33,7 +129,8 @@
     text-align: center;
     transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
     opacity: 90%;
-
+    position: relative;
+    z-index: 1;
 }
 
 .container .formUno{
@@ -75,6 +172,7 @@ h2 {
 .input-group input[type="text"],
 .input-group input[type="password"],
 .input-group input[type="number"],
+.input-group select,
 .input-group textarea {
     width: calc(100% - 24px); /* Account for padding and border */
     padding: 12px;
@@ -85,7 +183,22 @@ h2 {
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
+.input-group select {
+    width: 100%;
+    background-color: #ffffff;
+    color: #333;
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233f51b5'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 20px;
+    padding-right: 36px;
+}
+
 .input-group input:focus,
+.input-group select:focus,
 .input-group textarea:focus {
     border-color: #3f51b5; /* Highlight focus with primary color */
     box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.2); /* Glow effect on focus */

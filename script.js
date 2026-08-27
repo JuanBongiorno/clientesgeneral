@@ -1,7 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // ¡IMPORTANTE! Reemplaza con la URL de la aplicación web que obtuviste de Google Apps Script
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwVSncjLI5d-aJM1HW3tAqdMbzYMd2L3XQw8WZKFY_PTPXgcl3TGqVvy3bTTFPkrM6mHQ/exec';
-
     const loginContainer = document.getElementById('login-container');
     const mainMenu = document.getElementById('main-menu');
     const reposicionForm = document.getElementById('reposicion-bidones-form');
@@ -21,6 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const servicioMessage = document.getElementById('servicio-message');
 
     const backButtons = document.querySelectorAll('.back-button');
+
+    const statusConexion = document.getElementById('status-conexion');
+    const statusPendientes = document.getElementById('status-pendientes');
 
     function showSection(sectionId) {
         [loginContainer, mainMenu, reposicionForm, servicioTecnicoForm].forEach(section => {
@@ -73,41 +73,73 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Enviar datos de reposición de bidones
-    formReposicion.addEventListener('submit', async (e) => {
+    /* ---------- Estado de conexión y cola de envíos ---------- */
+
+    function pintarConexion() {
+        const online = navigator.onLine;
+        statusConexion.textContent = online ? 'En línea' : 'Sin conexión';
+        statusConexion.classList.toggle('online', online);
+        statusConexion.classList.toggle('offline', !online);
+    }
+
+    async function pintarPendientes() {
+        const n = await ReportQueue.count().catch(() => 0);
+        statusPendientes.textContent = n === 1 ? '1 reporte pendiente' : `${n} reportes pendientes`;
+        statusPendientes.classList.toggle('hidden', n === 0);
+        return n;
+    }
+
+    function mostrarMensaje(el, texto, tipo) {
+        el.textContent = texto;
+        el.style.color = tipo === 'error' ? '#dc3545' : (tipo === 'pendiente' ? '#e67e22' : '#28a745');
+    }
+
+    // Pide al Service Worker que vacíe la cola; si no está disponible lo hace la página.
+    async function dispararEnvio() {
+        const reg = 'serviceWorker' in navigator
+            ? await navigator.serviceWorker.ready.catch(() => null)
+            : null;
+        if (reg) {
+            if ('sync' in reg) {
+                try {
+                    await reg.sync.register('sync-reportes');
+                } catch (e) { /* sin Background Sync: seguimos con el vaciado manual */ }
+            }
+            if (reg.active) {
+                reg.active.postMessage({ type: 'flush' });
+                return;
+            }
+        }
+        ReportQueue.flush().then(pintarPendientes);
+    }
+
+    // Guarda el reporte al instante y lo envía en segundo plano.
+    async function encolarYResponder(data, mensajeEl) {
+        await ReportQueue.enqueue(data);
+        if (navigator.onLine) {
+            mostrarMensaje(mensajeEl, 'Reporte guardado. Enviándose en segundo plano...', 'ok');
+        } else {
+            mostrarMensaje(mensajeEl, 'Sin conexión: guardado en el dispositivo, se enviará solo al volver la señal.', 'pendiente');
+        }
+        pintarPendientes();
+        dispararEnvio();
+    }
+
+    formReposicion.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(formReposicion);
         const data = {
             sheet: 'ReposicionBidones',
             bidonesLlenos: formData.get('bidonesLlenos'),
             bidonesRetirados: formData.get('bidonesRetirados'),
-            observaciones: formData.get('observaciones')
+            observaciones: formData.get('observaciones'),
+            fecha: new Date().toISOString()
         };
-
-        try {
-            const response = await fetch(WEB_APP_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Importante para Google Apps Script
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams(data).toString(),
-            });
-            // Google Apps Script en modo no-cors no permite leer la respuesta,
-            // pero si la petición es exitosa, se asume que funcionó.
-            // Para una verificación más robusta, se necesitaría un proxy o CORS configurado en Apps Script.
-            reposicionMessage.textContent = 'Datos de reposición guardados con éxito.';
-            reposicionMessage.style.color = '#28a745';
-            formReposicion.reset();
-        } catch (error) {
-            console.error('Error al enviar datos de reposición:', error);
-            reposicionMessage.textContent = 'Error al guardar los datos de reposición.';
-            reposicionMessage.style.color = '#dc3545';
-        }
+        formReposicion.reset();
+        encolarYResponder(data, reposicionMessage);
     });
 
-    // Enviar datos de servicio técnico
-    formServicioTecnico.addEventListener('submit', async (e) => {
+    formServicioTecnico.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(formServicioTecnico);
         const data = {
@@ -117,25 +149,28 @@ document.addEventListener('DOMContentLoaded', () => {
             lugar: formData.get('lugar'),
             sector: formData.get('sector'),
             tecnico: formData.get('tecnico'),
-            observaciones: formData.get('observaciones')
+            observaciones: formData.get('observaciones'),
+            fecha: new Date().toISOString()
         };
-
-        try {
-            const response = await fetch(WEB_APP_URL, {
-                method: 'POST',
-                mode: 'no-cors', // Importante para Google Apps Script
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams(data).toString(),
-            });
-            servicioMessage.textContent = 'Datos de servicio técnico guardados con éxito.';
-            servicioMessage.style.color = '#28a745';
-            formServicioTecnico.reset();
-        } catch (error) {
-            console.error('Error al enviar datos de servicio técnico:', error);
-            servicioMessage.textContent = 'Error al guardar los datos de servicio técnico.';
-            servicioMessage.style.color = '#dc3545';
-        }
+        formServicioTecnico.reset();
+        encolarYResponder(data, servicioMessage);
     });
+
+    window.addEventListener('online', () => { pintarConexion(); dispararEnvio(); });
+    window.addEventListener('offline', pintarConexion);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.onLine) dispararEnvio();
+    });
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'queue-updated') pintarPendientes();
+        });
+        navigator.serviceWorker.register('sw.js')
+            .then(() => dispararEnvio())
+            .catch(err => console.error('No se pudo registrar el Service Worker:', err));
+    }
+
+    pintarConexion();
+    pintarPendientes();
 });
