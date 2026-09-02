@@ -93,8 +93,8 @@
                 <input type="text" id="cliente" name="cliente" required>
             </div>
             <div class="input-group">
-                <label for="id-dispenser">ID Dispenser (ej: 1111/111):</label>
-                <input type="text" id="id-dispenser" name="idDispenser" pattern="\d{4}/\d{3}" placeholder="XXXX/XXX" required>
+                <label for="id-dispenser">ID Dispenser (ej: 0756/ABC):</label>
+                <input type="text" id="id-dispenser" name="idDispenser" pattern="0\d{3}/[A-Za-z0-9]{3}" placeholder="0xxx/xxx" title="Ingresá el cliente y la máquina con formato 0756/ABC o 0756/123" required>
             </div>
             <div class="input-group">
                 <label for="lugar">Lugar:</label>

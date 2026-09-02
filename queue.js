@@ -78,5 +78,5 @@
         return { enviados, pendientes: await count() };
     }
 
-    scope.ReportQueue = { enqueue, getAll, remove, count, flush, WEB_APP_URL };
+    scope.ReportQueue = { enqueue, getAll, remove, count, flush, enviar, WEB_APP_URL };
 })(self);

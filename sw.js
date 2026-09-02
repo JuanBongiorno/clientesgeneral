@@ -1,6 +1,6 @@
 importScripts('./queue.js');
 
-const CACHE = 'gestion-bidones-v1';
+const CACHE = 'gestion-bidones-v3';
 const APP_SHELL = [
     './',
     './index.html',

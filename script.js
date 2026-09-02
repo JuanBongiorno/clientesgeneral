@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const statusConexion = document.getElementById('status-conexion');
     const statusPendientes = document.getElementById('status-pendientes');
+    const serviciosCargadosKey = 'servicios-tecnicos-cargados-v1';
 
     function showSection(sectionId) {
         [loginContainer, mainMenu, reposicionForm, servicioTecnicoForm].forEach(section => {
@@ -90,8 +91,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function mostrarMensaje(el, texto, tipo) {
+        clearTimeout(el.dataset.timeoutId);
         el.textContent = texto;
         el.style.color = tipo === 'error' ? '#dc3545' : (tipo === 'pendiente' ? '#e67e22' : '#28a745');
+        const duracion = tipo === 'error' ? 5000 : 3000;
+        const timeoutId = setTimeout(() => {
+            if (el.textContent === texto) {
+                el.textContent = '';
+            }
+            delete el.dataset.timeoutId;
+        }, duracion);
+        el.dataset.timeoutId = timeoutId;
+    }
+
+    function normalizarTexto(valor) {
+        return String(valor || '').trim().toUpperCase();
+    }
+
+    function obtenerClaveDispenser(idDispenser) {
+        const partes = normalizarTexto(idDispenser).split('/');
+        if (partes.length !== 2 || !partes[0] || !partes[1]) return '';
+        return `${partes[0]}/${partes[1]}`;
+    }
+
+    function obtenerPartesDispenser(idDispenser) {
+        const [cliente, maquina] = obtenerClaveDispenser(idDispenser).split('/');
+        return { cliente, maquina };
+    }
+
+    function obtenerServiciosCargados() {
+        try {
+            const guardados = JSON.parse(localStorage.getItem(serviciosCargadosKey) || '[]');
+            return Array.isArray(guardados) ? guardados : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function registrarServicioCargado(claveDispenser) {
+        const cargados = new Set(obtenerServiciosCargados());
+        cargados.add(claveDispenser);
+        localStorage.setItem(serviciosCargadosKey, JSON.stringify([...cargados]));
+    }
+
+    function conTiempoLimite(promesa, ms, valorPorDefecto) {
+        let timeoutId;
+        const timeout = new Promise(resolve => {
+            timeoutId = setTimeout(() => resolve(valorPorDefecto), ms);
+        });
+        return Promise.race([promesa, timeout]).finally(() => clearTimeout(timeoutId));
+    }
+
+    function existeServicioDuplicado(claveDispenser) {
+        return obtenerServiciosCargados().includes(claveDispenser);
     }
 
     // Pide al Service Worker que vacíe la cola; si no está disponible lo hace la página.
@@ -113,16 +165,31 @@ document.addEventListener('DOMContentLoaded', () => {
         ReportQueue.flush().then(pintarPendientes);
     }
 
-    // Guarda el reporte al instante y lo envía en segundo plano.
-    async function encolarYResponder(data, mensajeEl) {
-        await ReportQueue.enqueue(data);
-        if (navigator.onLine) {
-            mostrarMensaje(mensajeEl, 'Reporte guardado. Enviándose en segundo plano...', 'ok');
-        } else {
-            mostrarMensaje(mensajeEl, 'Sin conexión: guardado en el dispositivo, se enviará solo al volver la señal.', 'pendiente');
-        }
-        pintarPendientes();
-        dispararEnvio();
+    // Dispara el envío sin bloquear el formulario.
+    function enviarEnSegundoPlano(data, mensajeEl) {
+        mostrarMensaje(mensajeEl, 'Reporte recibido. Enviándose en segundo plano...', 'ok');
+
+        setTimeout(async () => {
+            if (navigator.onLine) {
+                const enviado = await conTiempoLimite(ReportQueue.enviar(data).then(() => true).catch(() => false), 8000, false);
+                if (enviado) {
+                    pintarPendientes();
+                    return;
+                }
+            }
+
+            const guardado = await conTiempoLimite(ReportQueue.enqueue(data).then(() => true).catch(() => false), 3000, false);
+            if (!guardado) {
+                mostrarMensaje(mensajeEl, 'No se pudo guardar el reporte. Cerrá y abrí la app e intentá nuevamente.', 'error');
+                return;
+            }
+
+            if (!navigator.onLine) {
+                mostrarMensaje(mensajeEl, 'Sin conexión: guardado en el dispositivo, se enviará solo al volver la señal.', 'pendiente');
+            }
+            pintarPendientes();
+            dispararEnvio();
+        }, 0);
     }
 
     formReposicion.addEventListener('submit', (e) => {
@@ -136,12 +203,20 @@ document.addEventListener('DOMContentLoaded', () => {
             fecha: new Date().toISOString()
         };
         formReposicion.reset();
-        encolarYResponder(data, reposicionMessage);
+        enviarEnSegundoPlano(data, reposicionMessage);
     });
 
-    formServicioTecnico.addEventListener('submit', (e) => {
+    formServicioTecnico.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(formServicioTecnico);
+        const claveDispenser = obtenerClaveDispenser(formData.get('idDispenser'));
+        const dispenser = obtenerPartesDispenser(formData.get('idDispenser'));
+
+        if (existeServicioDuplicado(claveDispenser)) {
+            mostrarMensaje(servicioMessage, `Atención: la máquina ${dispenser.maquina} del cliente ${dispenser.cliente} ya fue cargada. No se guardó el duplicado.`, 'error');
+            return;
+        }
+
         const data = {
             sheet: 'ServicioTecnico',
             cliente: formData.get('cliente'),
@@ -153,7 +228,8 @@ document.addEventListener('DOMContentLoaded', () => {
             fecha: new Date().toISOString()
         };
         formServicioTecnico.reset();
-        encolarYResponder(data, servicioMessage);
+        registrarServicioCargado(claveDispenser);
+        enviarEnSegundoPlano(data, servicioMessage);
     });
 
     window.addEventListener('online', () => { pintarConexion(); dispararEnvio(); });
