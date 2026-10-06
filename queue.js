@@ -3,7 +3,7 @@
 (function (scope) {
     const DB_NAME = 'reportes-db';
     const STORE = 'pendientes';
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx_OgwoZ2AtwZ6iM08D0X-rz9mHf0w-kZw4GK6gkasWb0tZNu1id0QwRoI61sIBOZ36cA/exec';
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwPQfrzB4AJLC-60FYqQ-0Nhcf0QDDtwo1gAwhUqsl6EHZHXVVXaVtn3jPztcnA_M9L/exec';
 
     let dbPromise = null;
 
